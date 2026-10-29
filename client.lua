@@ -97,12 +97,21 @@ function GetAttackType(playerPed)
 end
 
 function ApplyAttackToTarget(attacker, target, attackType)
-	if attackType.force > 0 then
-		SetPedToRagdoll(target, 1000, 1000, 0, 0, 0, 0)
-		SetEntityVelocity(target, GetEntityForwardVector(attacker) * attackType.force)
+	if not attackType or not attacker or not target then
+		return
 	end
 
-	if attackType.damage > 0 then
+	if attacker == 0 or target == 0 or not DoesEntityExist(attacker) or not DoesEntityExist(target) then
+		return
+	end
+
+	if (attackType.force or 0) > 0 then
+		SetPedToRagdoll(target, 1000, 1000, 0, 0, 0, 0)
+		local forward = GetEntityForwardVector(attacker)
+		SetEntityVelocity(target, forward.x * attackType.force, forward.y * attackType.force, forward.z * attackType.force)
+	end
+
+	if (attackType.damage or 0) > 0 then
 		ApplyDamageToPed(target, attackType.damage, 1, -1, 0)
 	end
 end
@@ -160,15 +169,28 @@ function ToggleCrouch()
 end
 
 AddEventHandler("fixanimals:attack", function(attacker, entity)
-	local attackerPed = GetPlayerPed(GetPlayerFromServerId(attacker))
+	local attackerPlayer = GetPlayerFromServerId(attacker)
+	if attackerPlayer == -1 then
+		return
+	end
+
+	local attackerPed = GetPlayerPed(attackerPlayer)
+	if not attackerPed or attackerPed == 0 or not DoesEntityExist(attackerPed) then
+		return
+	end
+
 	local attackType = GetAttackType(attackerPed)
+	if not attackType then
+		return
+	end
 
 	if entity == -1 then
 		if IsPvpEnabled() then
 			ApplyAttackToTarget(attackerPed, PlayerPedId(), attackType)
 		end
 	else
-		ApplyAttackToTarget(attackerPed, NetToPed(entity), attackType)
+		local targetPed = NetToPed(entity)
+		ApplyAttackToTarget(attackerPed, targetPed, attackType)
 	end
 end)
 
